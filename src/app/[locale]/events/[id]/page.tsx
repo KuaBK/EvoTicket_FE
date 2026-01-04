@@ -99,8 +99,8 @@ export default function EventDetailPage() {
         }
     }, [id]);
 
-    const fetchEventDetail = async (eventId: string) => {
-        setLoading(true);
+    const fetchEventDetail = async (eventId: string, isBackgroundFetch = false) => {
+        if (!isBackgroundFetch) setLoading(true);
         try {
             // Dùng endpoint public nếu có, hoặc endpoint authenticated
             // Theo curl user đưa: /inventory-service/api/events/1 (GET)
@@ -116,7 +116,7 @@ export default function EventDetailPage() {
             console.error("Failed to fetch event detail", error);
             toast.error("Không thể tải thông tin sự kiện");
         } finally {
-            setLoading(false);
+            if (!isBackgroundFetch) setLoading(false);
         }
     };
 
@@ -182,7 +182,8 @@ export default function EventDetailPage() {
             setImagePreviews([]);
 
             // Refresh event data to show new review
-            if (id) fetchEventDetail(id as string);
+            // Refresh event data to show new review (Silent refresh)
+            if (id) fetchEventDetail(id as string, true);
 
         } catch (error) {
             console.error("Failed to submit review", error);

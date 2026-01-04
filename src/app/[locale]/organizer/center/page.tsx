@@ -199,10 +199,10 @@ export default function OrganizerCenterPage() {
                         <h2 className="text-2xl font-bold text-txt-primary">Sự kiện của tôi</h2>
                         <p className="text-sm text-txt-muted">Quản lý và theo dõi các sự kiện của bạn</p>
                     </div>
-                    <button className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm">
+                    <Link href={`/${locale}/organizer/events/create`} className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm">
                         <Plus size={20} />
                         Tạo sự kiện
-                    </button>
+                    </Link>
                 </header>
 
                 {/* Content Area */}
@@ -225,10 +225,10 @@ export default function OrganizerCenterPage() {
                                 <p className="text-txt-muted mb-8 max-w-md mx-auto">
                                     Bắt đầu tạo sự kiện đầu tiên của bạn và tiếp cận hàng ngàn khách hàng tiềm năng!
                                 </p>
-                                <button className="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-8 py-3.5 rounded-lg font-semibold transition-all hover:shadow-lg hover:scale-105">
+                                <Link href={`/${locale}/organizer/events/create`} className="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-8 py-3.5 rounded-lg font-semibold transition-all hover:shadow-lg hover:scale-105">
                                     <Plus size={22} />
                                     Tạo sự kiện đầu tiên
-                                </button>
+                                </Link>
                             </div>
                         ) : (
                             /* Events Grid */

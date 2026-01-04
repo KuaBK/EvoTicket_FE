@@ -212,7 +212,7 @@ export function Header() {
       <div className="container mx-auto px-4 h-20 flex items-center justify-between gap-4">
 
         {/* === LEFT: LOGO === */}
-        <Link href="/" className="flex items-center gap-2 shrink-0 group">
+        <Link href={`/${locale}/user/homepage`} className="flex items-center gap-2 shrink-0 group">
           {/* Logo Icon */}
           <div className="relative w-8 h-8 flex items-center justify-center border-2 border-primary rounded transition-colors group-hover:border-primary-hover">
             <div className="w-4 h-4 border border-primary rotate-45 group-hover:border-primary-hover transition-colors"></div>
