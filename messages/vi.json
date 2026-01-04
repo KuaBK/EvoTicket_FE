@@ -1,0 +1,13 @@
+{
+  "Auth": {
+    "login_title": "Đăng nhập",
+    "login_subtitle": "Nhập email để truy cập ví vé của bạn",
+    "email_label": "Email",
+    "password_label": "Mật khẩu",
+    "forgot_password": "Quên mật khẩu?",
+    "login_button": "Đăng nhập với Email",
+    "or_continue_with": "Hoặc tiếp tục với",
+    "no_account": "Bạn chưa có tài khoản?",
+    "register_link": "Đăng ký"
+  }
+}
