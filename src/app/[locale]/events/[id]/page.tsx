@@ -12,7 +12,9 @@ import {
     MapPin, Calendar, Clock, User, Star, Image as ImageIcon,
     Send, Share2, Heart, Ticket, Phone, Mail, ChevronLeft
 } from "lucide-react";
+import { Footer } from "@/src/components/footer";
 import { decodeJWT } from "@/src/lib/jwt";
+import { Header } from "@/src/components/header";
 
 // Dynamic import for Map to avoid SSR issues
 const Map = dynamic(() => import("@/src/components/Map"), {
@@ -223,6 +225,7 @@ export default function EventDetailPage() {
 
     return (
         <div className="min-h-screen bg-surface pb-20">
+            <Header />
             {/* 1. Header & Breadcrumb */}
             <div className="bg-main border-b border-border sticky top-0 z-10 px-4 py-3 shadow-sm">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -542,10 +545,10 @@ export default function EventDetailPage() {
                                 Được bảo đảm bởi EvoTicket
                             </p>
                         </div>
-
                     </div>
                 </div>
             </div>
+            <Footer />
         </div>
     );
 }

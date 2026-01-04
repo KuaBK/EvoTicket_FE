@@ -10,6 +10,8 @@ import {
     Search, MapPin, Calendar, Filter, Heart, ChevronLeft, ChevronRight,
     LayoutGrid, List as ListIcon, Loader2
 } from "lucide-react";
+import { Footer } from "@/src/components/footer";
+import { Header } from "@/src/components/header";
 
 // --- Interfaces ---
 interface EventItem {
@@ -171,6 +173,7 @@ export default function EventsPage() {
 
     return (
         <div className="min-h-screen bg-surface pb-20">
+            <Header />
             {/* Header Banner */}
             <div className="bg-primary text-white py-12">
                 <div className="container mx-auto px-4">
@@ -416,8 +419,8 @@ export default function EventsPage() {
                                                 key={p}
                                                 onClick={() => setPage(p)}
                                                 className={`w-10 h-10 rounded-lg font-medium transition-colors ${page === p
-                                                        ? 'bg-primary text-white shadow-lg shadow-primary/30'
-                                                        : 'border border-border hover:bg-secondary'
+                                                    ? 'bg-primary text-white shadow-lg shadow-primary/30'
+                                                    : 'border border-border hover:bg-secondary'
                                                     }`}
                                             >
                                                 {p}
@@ -438,6 +441,7 @@ export default function EventsPage() {
                     </main>
                 </div>
             </div>
+            <Footer />
         </div>
     );
 }
