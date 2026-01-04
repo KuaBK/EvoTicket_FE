@@ -4,19 +4,19 @@ import { ReactNode } from 'react';
 
 type Props = {
   children: ReactNode;
-  locale?: string;
+  params: {
+    locale: string;
+  };
 };
 
-export default function RootLayout({ children,locale}: Props) {
+export default function RootLayout({ children, params }: Props) {
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={params.locale} suppressHydrationWarning>
       <body>
         <ThemeProvider
-          // attribute="class"
-          // defaultTheme="system"
-          // enableSystem
-          // disableTransitionOnChange
-          attribute="class" defaultTheme="light" enableSystem
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
         >
           {children}
         </ThemeProvider>
