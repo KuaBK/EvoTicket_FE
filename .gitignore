@@ -39,3 +39,17 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# package locks
+package-lock.json
+
+
+# agent
+.agent
+.agent/*
+.agent/**
+
+# agent rules
+.agent/rules
+.agent/rules/*
+.agent/rules/**

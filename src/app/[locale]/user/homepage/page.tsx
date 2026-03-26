@@ -4,11 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Calendar, MapPin, ChevronRight, Search, TrendingUp, Filter, CheckIcon, Loader2 } from "lucide-react";
 import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headlessui/react";
 import { Footer } from "@/src/components/footer";
 import api from "@/src/lib/axios";
 import Cookies from "js-cookie";
+import { CustomDatePicker } from "@/src/components/ui/CustomDatePicker";
 
 // Mock Data: Sự kiện thịnh hành (Table) - Giữ nguyên mock do chưa có API ranking/finance
 const trendingEvents = [
@@ -18,18 +20,6 @@ const trendingEvents = [
   { id: 4, rank: "04", title: "Concert Chillies", organizer: "SpaceSpeakers", price: "130,000 VND", volume: "1,507,054,100 VND", growth: "+1%" },
   { id: 5, rank: "05", title: "Concert Chillies", organizer: "SpaceSpeakers", price: "130,000 VND", volume: "1,507,054,100 VND", growth: "+125%" },
 ];
-
-const location = [
-  { id: "all", name: "Tất cả địa điểm" },
-  { id: "hcm", name: "TP. Hồ Chí Minh" },
-  { id: "hn", name: "Hà Nội" },
-  { id: "dn", name: "Đà Nẵng" },
-]
-const genre = [
-  { id: "all", name: "Tất cả thể loại" },
-  { id: "music", name: "Âm nhạc (Concert)" },
-  { id: "workshop", name: "Hội thảo" },
-]
 
 interface EventHomeItem {
   id: number;
@@ -45,14 +35,32 @@ interface EventHomeItem {
 
 export default function HomePage() {
   const { locale } = useParams();
+  const t = useTranslations("Homepage");
+
+  // const location = [
+  //   { id: "all", name: t("location_all") },
+  //   { id: "hcm", name: t("location_hcm") },
+  //   { id: "hn", name: t("location_hn") },
+  //   { id: "dn", name: t("location_dn") },
+  // ]
+  const genre = [
+    { id: "all", name: t("genre_all") },
+    { id: "music", name: t("genre_music") },
+    { id: "workshop", name: t("genre_workshop") },
+  ]
 
   // Filters State
-  const [locationSelected, setLocationSelected] = useState(location[0])
+  const [locationSelected, setLocationSelected] = useState<any>({
+    code: "all",
+    name: t("location_all")
+  });
   const [openSelectLocation, setOpenSelectLocation] = useState(false)
   const locationRef = useRef<HTMLDivElement>(null)
   const [genreSelected, setGenreSelected] = useState(genre[0])
   const [openSelectGenre, setOpenSelectGenre] = useState(false)
   const genreRef = useRef<HTMLDivElement>(null)
+  const [dateSelected, setDateSelected] = useState<Date | null>(null)
+  const [locationList, setLocationList] = useState<any[]>([]);
 
   // Events State
   const [latestEvents, setLatestEvents] = useState<EventHomeItem[]>([]);
@@ -75,8 +83,6 @@ export default function HomePage() {
   useEffect(() => {
     const fetchLatestEvents = async () => {
       try {
-        const token = Cookies.get("token");
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
         // Fetch 4 latest events
         const response = await api.get("/inventory-service/api/events", {
@@ -87,10 +93,10 @@ export default function HomePage() {
             sortDirection: "DESC",
             includeExpired: false // Only show future events in "Upcoming" section
           },
-          headers
         });
 
         if (response.data && response.data.data && response.data.data.content) {
+          console.log(response.data);
           setLatestEvents(response.data.data.content);
         }
       } catch (error) {
@@ -99,8 +105,27 @@ export default function HomePage() {
         setLoadingEvents(false);
       }
     };
+    const fetchListProvince = async () => {
+      try {
+
+        const response = await api.get("/iam-service/api/locations/provinces");
+
+        if (response.data) {
+          const allOption = {
+            code: "all",
+            name: t("location_all")
+          };
+          setLocationList([allOption, ...response.data]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch list province", error);
+      } finally {
+        setLoadingEvents(false);
+      }
+    };
 
     fetchLatestEvents();
+    fetchListProvince();
   }, []);
 
   const formatDate = (dateString: string) => {
@@ -130,13 +155,13 @@ export default function HomePage() {
           {/* Hero Content */}
           <div className="relative z-10 text-center px-4 max-w-4xl mx-auto mt-[-50px]">
             <h2 className="text-white text-lg md:text-xl font-medium tracking-wider mb-2 uppercase">
-              Trải nghiệm sự kiện đỉnh cao cùng
+              {t("hero_title")}
             </h2>
             <Link
               href={`/${locale}/events`}
               className="inline-block bg-gradient-to-r from-accent to-yellow-600 hover:from-yellow-400 hover:to-accent text-white font-bold py-3 px-8 rounded-lg shadow-lg transform hover:scale-105 transition-all"
             >
-              Khám phá ngay
+              {t("explore_now")}
             </Link>
           </div>
 
@@ -158,7 +183,7 @@ export default function HomePage() {
                             focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer transition-colors text-left
                         "
                 >
-                  {locationSelected.name}
+                  {locationSelected?.name || t("location_all")}
                 </ListboxButton>
 
                 {openSelectLocation && (
@@ -170,9 +195,9 @@ export default function HomePage() {
                         rounded-lg shadow-lg text-txt-primary
                         "
                   >
-                    {location.map(item => (
+                    {locationList.map(item => (
                       <ListboxOption
-                        key={item.id}
+                        key={item.code}
                         value={item}
                         className="
                             group flex items-center px-3 py-2 cursor-pointer
@@ -234,16 +259,16 @@ export default function HomePage() {
 
             {/* Date Picker */}
             <div className="flex-1 w-full relative">
-              <div className="w-full p-3 bg-secondary border border-border rounded-lg text-txt-primary flex items-center justify-between cursor-pointer hover:border-primary transition-colors">
-                <span>June 01, 2025</span>
-                <Calendar size={16} className="text-txt-muted" />
-              </div>
+              <CustomDatePicker
+                selectedDate={dateSelected}
+                onChange={setDateSelected}
+              />
             </div>
 
             {/* Button Search */}
             <button className="w-full md:w-auto bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
               <Search size={18} />
-              <span>Tìm kiếm</span>
+              <span>{t("search_button")}</span>
             </button>
           </div>
         </section>
@@ -251,7 +276,7 @@ export default function HomePage() {
         {/* === TRENDING EVENTS (Mocked) === */}
         <section className="container mx-auto px-4">
           <h2 className="text-2xl font-bold text-txt-primary mb-6 flex items-center gap-2">
-            Sự kiện thịnh hành <TrendingUp className="text-accent" />
+            {t("trending_events")} <TrendingUp className="text-accent" />
           </h2>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -261,11 +286,11 @@ export default function HomePage() {
               <table className="w-full min-w-[600px]">
                 <thead>
                   <tr className="text-txt-muted text-sm border-b border-border">
-                    <th className="pb-3 text-left font-medium">Hạng</th>
-                    <th className="pb-3 text-left font-medium">Thông tin sự kiện</th>
-                    <th className="pb-3 text-right font-medium">Giá sàn</th>
-                    <th className="pb-3 text-right font-medium">Sức mua 24h</th>
-                    <th className="pb-3 text-right font-medium">Độ hot</th>
+                    <th className="pb-3 text-left font-medium">{t("rank")}</th>
+                    <th className="pb-3 text-left font-medium">{t("event_info")}</th>
+                    <th className="pb-3 text-right font-medium">{t("floor_price")}</th>
+                    <th className="pb-3 text-right font-medium">{t("volume_24h")}</th>
+                    <th className="pb-3 text-right font-medium">{t("hotness")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -311,7 +336,7 @@ export default function HomePage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
                 <div className="absolute bottom-4 left-4 text-white">
                   <h3 className="font-bold text-xl mb-1">NHÀ GIA TIÊN</h3>
-                  <p className="text-sm opacity-80">Sắp diễn ra • TP.HCM</p>
+                  <p className="text-sm opacity-80">{t("upcoming")} • {t("location_hcm")}</p>
                 </div>
               </div>
             </div>
@@ -322,9 +347,9 @@ export default function HomePage() {
         {/* === LATEST / UPCOMING EVENTS (From API) === */}
         <section className="container mx-auto px-4 mt-16">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-txt-primary">Sự kiện mới nhất</h2>
+            <h2 className="text-2xl font-bold text-txt-primary">{t("latest_events")}</h2>
             <Link href={`/${locale}/events`} className="text-primary hover:text-primary-hover text-sm font-medium flex items-center gap-1 transition-colors">
-              Xem tất cả <ChevronRight size={16} />
+              {t("view_all")} <ChevronRight size={16} />
             </Link>
           </div>
 
@@ -376,7 +401,7 @@ export default function HomePage() {
                       <div className="mt-4 pt-3 border-t border-border">
                         <span className="text-primary font-bold block">
                           {/* Placeholder for price, as list API might not explicitly return it in sample */}
-                          Liên hệ
+                          {t("contact")}
                         </span>
                       </div>
                     </div>
@@ -384,7 +409,7 @@ export default function HomePage() {
                 </Link>
               )) : (
                 <div className="col-span-4 text-center py-10 text-txt-muted">
-                  Chưa có sự kiện nào sắp tới.
+                  {t("no_upcoming_events")}
                 </div>
               )}
             </div>

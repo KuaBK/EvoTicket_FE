@@ -6,53 +6,98 @@ import Link from "next/link";
 // 💡 Import hook dịch thuật
 import { useTranslations } from 'next-intl';
 import { useParams, useRouter } from "next/navigation";
-import Cookies from "js-cookie";
 import { toast } from "react-toastify";
 import api from "@/src/lib/axios";
 import axios from "axios";
+import { useAppDispatch, useAppSelector } from "@/src/store/hooks";
+import { setCredentials } from "@/src/store/slices/authSlice";
+import { setAppLoading, selectAppLoading } from "@/src/store/slices/appSlice";
+import { useGoogleLogin } from "@react-oauth/google";
+
 
 export default function LoginPage() {
 
   const router = useRouter();
   const { locale } = useParams();
+  const dispatch = useAppDispatch();
   // Khởi tạo hook dịch thuật, sử dụng namespace 'Auth'
   const t = useTranslations('Auth');
 
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+
+  // Use global Redux loading state
+  const loading = useAppSelector(selectAppLoading);
 
   // function submit login
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    dispatch(setAppLoading(true));
 
     try {
-      const response = await api.post("/iam-service/api/auth/login", {
-        email: email,
-        password: password
-      });
+      const response = await api.post("/iam-service/api/auth/login",
+        {
+          email: email,
+          password: password
+        },
+        { skipAuth: true } as any
+      );
 
       const data = response.data;
 
       if (data.status === 200) {
-        // Success
-        Cookies.set("token", data.data.token, { expires: 7 }); // Expires in 7 days
-        toast.success(data.message || "Đăng nhập thành công!");
+        // Success - Dispatch to Redux instead of Cookie
+        dispatch(setCredentials({ token: data.data.token }));
+        toast.success(data.message || t('login_success', { defaultMessage: "Đăng nhập thành công!" }));
         router.push(`/${locale}/user/homepage`);
       }
     } catch (error: any) {
       if (axios.isAxiosError(error) && error.response) {
-        toast.error(error.response.data.message || "Đăng nhập thất bại");
+        toast.error(error.response.data.message || t('login_failed', { defaultMessage: "Đăng nhập thất bại" }));
       } else {
         console.error("Login error:", error);
-        toast.error("Có lỗi xảy ra, vui lòng thử lại sau.");
+        toast.error(t('login_error', { defaultMessage: "Có lỗi xảy ra, vui lòng thử lại sau." }));
       }
     } finally {
-      setLoading(false);
+      dispatch(setAppLoading(false));
     }
   }
+
+  // Hàm xử lý khi đăng nhập Google thành công
+  const loginWithGoogle = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      dispatch(setAppLoading(true));
+      try {
+        // tokenResponse.access_token chứa token từ Google
+        // Ta gửi nó xuống backend IAM-Service của bạn
+        const response = await api.post("/iam-service/api/auth/google",
+          {
+            access_token: tokenResponse.access_token
+          },
+          { skipAuth: true } as any
+        );
+
+        const data = response.data;
+        if (data.status === 200) {
+          // Lưu token riêng của hệ thống bạn vào Redux
+          dispatch(setCredentials({ token: data.data.token }));
+          toast.success(data.message || t('login_google_success', { defaultMessage: "Đăng nhập Google thành công!" }));
+          router.push(`/${locale}/user/homepage`);
+        }
+      } catch (error: any) {
+        toast.error(error.response.data.message || t('login_google_failed', { defaultMessage: "Đăng nhập Google thất bại!" }));
+        console.error("Google Login Backend Error:", error);
+      } finally {
+        dispatch(setAppLoading(false));
+      }
+    },
+    onError: (error) => {
+      toast.error(t('google_connect_error', { defaultMessage: "Lỗi khi kết nối với Google" }));
+      console.log('Google connection error:', error);
+    }
+  });
+
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-white p-4">
@@ -124,7 +169,7 @@ export default function LoginPage() {
               className="w-full bg-[#1a1a1a] hover:bg-black text-white font-medium py-2.5 rounded-lg transition-colors text-sm mt-2 disabled:opacity-50"
               disabled={loading}
             >
-              {loading ? "Đang xử lý..." : t('login_button')}
+              {loading ? t('processing') : t('login_button')}
             </button>
           </form>
 
@@ -140,10 +185,15 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Nút Google */}
-          <button className="w-full border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-medium py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors text-sm">
+          {/* Nút Google MỚI */}
+          <button
+            type="button"
+            onClick={() => loginWithGoogle()}
+            disabled={loading}
+            className="w-full border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-medium py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors text-sm disabled:opacity-50"
+          >
             <GoogleIcon />
-            Google
+            {loading ? t('processing') : t('continue_with_google')}
           </button>
 
           {/* Footer: Đăng ký */}

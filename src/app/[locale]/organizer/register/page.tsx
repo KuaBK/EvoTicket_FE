@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import Cookies from "js-cookie";
 import api from "@/src/lib/axios";
 import { toast } from "react-toastify";
 import { Building2, FileText, Phone, Mail, Globe, Upload, MapPin } from "lucide-react";
+import { useAppSelector, useAppDispatch } from "@/src/store/hooks";
+import { updateToken } from "@/src/store/slices/authSlice";
 
 interface OrganizerFormData {
     organizationName: string;
@@ -40,6 +41,9 @@ interface Ward {
 export default function RegisterOrganizerPage() {
     const router = useRouter();
     const { locale } = useParams();
+    const dispatch = useAppDispatch();
+    const { token } = useAppSelector((state) => state.auth);
+
     const [isLoading, setIsLoading] = useState(false);
     const [provinces, setProvinces] = useState<Province[]>([]);
     const [wards, setWards] = useState<Ward[]>([]);
@@ -76,16 +80,10 @@ export default function RegisterOrganizerPage() {
     }, [formData.provinceCode]);
 
     const fetchProvinces = async () => {
-        const token = Cookies.get("token");
-        if (!token) return;
-
         setIsLoadingProvinces(true);
         try {
-            const response = await api.get("/iam-service/api/locations/provinces", {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+            // Token auto-injected by axios interceptor
+            const response = await api.get("/iam-service/api/locations/provinces");
 
             if (response.data && Array.isArray(response.data)) {
                 setProvinces(response.data);
@@ -99,18 +97,11 @@ export default function RegisterOrganizerPage() {
     };
 
     const fetchWards = async (provinceCode: number) => {
-        const token = Cookies.get("token");
-        if (!token) return;
-
         setIsLoadingWards(true);
         try {
+            // Token auto-injected by axios interceptor
             const response = await api.get(
-                `/iam-service/api/locations/wards?provinceCode=${provinceCode}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
+                `/iam-service/api/locations/wards?provinceCode=${provinceCode}`
             );
 
             if (response.data && Array.isArray(response.data)) {
@@ -135,7 +126,6 @@ export default function RegisterOrganizerPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        const token = Cookies.get("token");
         if (!token) {
             toast.error("Vui lòng đăng nhập để tiếp tục");
             router.push(`/${locale}/auth/login`);
@@ -145,25 +135,18 @@ export default function RegisterOrganizerPage() {
         setIsLoading(true);
 
         try {
+            // Token auto-injected by axios interceptor
             const response = await api.post(
                 "/iam-service/api/organizations",
-                formData,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                }
+                formData
             );
 
             if (response.data && response.data.status === 201) {
                 toast.success("Đăng ký organizer thành công!");
 
-                // Lấy token mới từ response
+                // Lấy token mới từ response và update vào Redux
                 const newToken = response.data.data["New token"];
-
-                // Thay thế token cũ bằng token mới
-                Cookies.set("token", newToken);
+                dispatch(updateToken(newToken));
 
                 // Chuyển đến trang Organizer Center
                 router.push(`/${locale}/organizer/center`);

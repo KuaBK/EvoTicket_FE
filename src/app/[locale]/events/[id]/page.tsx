@@ -13,7 +13,6 @@ import {
     Send, Share2, Heart, Ticket, Phone, Mail, ChevronLeft
 } from "lucide-react";
 import { Footer } from "@/src/components/footer";
-import { decodeJWT } from "@/src/lib/jwt";
 import { Header } from "@/src/components/header";
 
 // Dynamic import for Map to avoid SSR issues

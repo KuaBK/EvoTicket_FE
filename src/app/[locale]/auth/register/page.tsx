@@ -3,62 +3,150 @@
 import React, { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
+import api from "@/src/lib/axios";
+import { toast } from "react-toastify";
+import axios from "axios";
+import { useParams, useRouter } from "next/navigation";
+import { useAppDispatch, useAppSelector } from "@/src/store/hooks";
+import { setCredentials } from "@/src/store/slices/authSlice";
+import { setAppLoading, selectAppLoading } from "@/src/store/slices/appSlice";
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const { locale } = useParams();
+  const dispatch = useAppDispatch();
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  // Use global Redux loading state
+  const loading = useAppSelector(selectAppLoading);
+
   // State mô phỏng thanh độ mạnh mật khẩu (Strength bar)
   const [passwordStrength, setPasswordStrength] = useState(0); // 0 (yếu) đến 4 (mạnh)
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const password = e.target.value;
+    const val = e.target.value;
+    setPassword(val);
+
     // Logic đơn giản để mô phỏng độ mạnh mật khẩu
     let strength = 0;
-    if (password.length >= 8) strength++;
-    if (/[A-Z]/.test(password)) strength++;
-    if (/\d/.test(password)) strength++;
-    if (/[!@#$%^&*]/.test(password)) strength++;
+    if (val.length >= 1) strength++;
+    if (val.length >= 8) strength++;
+    if (/[A-Z]/.test(val) && /[a-z]/.test(val)) strength++;
+    if (/[^A-Za-z0-9]/.test(val) && (/[0-9]/.test(val))) strength++;
     setPasswordStrength(strength);
-    // Bạn sẽ cần lưu giá trị password vào state thực tế tại đây
   };
 
   const strengthBarColor = ['bg-gray-200', 'bg-red-500', 'bg-yellow-500', 'bg-blue-500', 'bg-green-500'];
   const strengthText = [
-    'Tối thiểu 8 ký tự.', 
-    'Chứa chữ hoa và chữ thường.', 
+    'Tối thiểu 8 ký tự.',
+    'Chứa chữ hoa và chữ thường.',
     'Chứa số và ký tự đặc biệt.'
   ];
 
+  const checkRequirement = (index: number) => {
+    switch (index) {
+      case 0:
+        return password.length >= 8;
+      case 1:
+        return /[A-Z]/.test(password) && /[a-z]/.test(password);
+      case 2:
+        return /\d/.test(password) && /[^A-Za-z0-9]/.test(password);
+      default:
+        return false;
+    }
+  };
+
   const renderStrengthIndicator = (index: number) => {
-    const isCompleted = passwordStrength > index;
-    const isMinLength = index === 0 && passwordStrength >= 1; // Ký tự tối thiểu (luôn là bước 1)
-    
+    const isCompleted = checkRequirement(index);
+
     return (
-      <li key={index} className={`flex items-start text-xs ${isCompleted || isMinLength ? 'text-gray-900' : 'text-gray-400'}`}>
+      <li key={index} className={`flex items-start text-xs ${isCompleted ? 'text-gray-900' : 'text-gray-400'}`}>
         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`mt-0.5 mr-1 ${isCompleted ? 'text-green-500' : 'text-gray-300'}`}>
-            <polyline points="20 6 9 17 4 12"></polyline>
+          <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
         {strengthText[index]}
       </li>
     );
   };
 
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    dispatch(setAppLoading(true));
+
+    const trimmedName = name.trim();
+    const nameParts = trimmedName.split(" ");
+
+    // Default values if name is empty
+    let firstNameValue = trimmedName;
+    let lastNameValue = "";
+
+    if (nameParts.length > 1) {
+      // Lấy từ cuối cùng làm FirstName (Tên) và phần còn lại làm LastName (Họ và đệm)
+      firstNameValue = nameParts.pop() || "";
+      lastNameValue = nameParts.join(" ");
+    } else {
+      // Nếu người dùng chỉ nhập 1 từ, thì Tên = từ đó, Họ và đệm = rỗng
+      firstNameValue = trimmedName;
+      lastNameValue = "";
+    }
+
+    try {
+      const response = await api.post("/iam-service/api/auth/register",
+        {
+          email: email,
+          password: password,
+          firstName: firstNameValue,
+          lastName: lastNameValue,
+          phoneNumber: phone,
+          dateOfBirth: "2006-03-16",
+          gender: "MALE",
+          userAddress: "string",
+          provinceCode: 1,
+          wardCode: 4
+        },
+        { skipAuth: true } as any
+      );
+
+      const data = response.data;
+
+      if (data.status === 201) {
+        toast.success(data.message || "Đăng ký thành công!");
+        router.push(`/${locale}/auth/login`);
+      }
+    } catch (error: any) {
+      if (axios.isAxiosError(error) && error.response) {
+        toast.error(error.response.data.message || "Đăng ký thất bại");
+      } else {
+        console.error("Register error:", error);
+        toast.error("Có lỗi xảy ra, vui lòng thử lại sau.");
+      }
+    } finally {
+      dispatch(setAppLoading(false));
+    }
+  }
+
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-white p-4">
       <div className="flex flex-col md:flex-row items-center gap-10 max-w-5xl w-full justify-center">
-        
+
         {/* --- CỘT TRÁI: HÌNH ẢNH PLACEHOLDER --- */}
         <div className="hidden md:flex w-[400px] h-[600px] bg-[#f8f8f8] items-center justify-center">
-            {/* Đây là mô phỏng icon hình ảnh placeholder như trong thiết kế */}
-            <div className="w-1/3 h-1/3 border-2 border-gray-300 rounded-full flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 opacity-50">
-                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <polyline points="21 15 16 10 5 21" />
-                </svg>
-            </div>
+          {/* Đây là mô phỏng icon hình ảnh placeholder như trong thiết kế */}
+          <div className="w-1/3 h-1/3 border-2 border-gray-300 rounded-full flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 opacity-50">
+              <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+          </div>
         </div>
 
         {/* --- CỘT PHẢI: FORM ĐĂNG KÝ --- */}
@@ -71,7 +159,7 @@ export default function RegisterPage() {
           </div>
 
           <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-            
+
             {/* Input Họ và Tên */}
             <div className="space-y-1">
               <label className="text-sm font-semibold text-gray-700">
@@ -79,6 +167,8 @@ export default function RegisterPage() {
               </label>
               <input
                 type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 placeholder="Nguyễn Văn A"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5 text-sm"
               />
@@ -91,6 +181,8 @@ export default function RegisterPage() {
               </label>
               <input
                 type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5 text-sm"
               />
@@ -98,7 +190,7 @@ export default function RegisterPage() {
                 EvoTicket sử dụng email để tạo ví lưu ký, và sẽ không tiết lộ cho bên thứ ba.
               </p>
             </div>
-            
+
             {/* Input Số điện thoại */}
             <div className="space-y-1">
               <label className="text-sm font-semibold text-gray-700">
@@ -106,6 +198,8 @@ export default function RegisterPage() {
               </label>
               <input
                 type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
                 placeholder="0912 xxx xxx"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5 text-sm"
               />
@@ -134,21 +228,21 @@ export default function RegisterPage() {
                   )}
                 </button>
               </div>
-              
+
               {/* Thanh độ mạnh mật khẩu */}
               <div className="flex justify-between mt-1 space-x-1">
                 <div className={`h-1 flex-1 rounded-full ${strengthBarColor[Math.min(strengthBarColor.length - 1, passwordStrength)]}`} style={{ width: `${(passwordStrength / (strengthBarColor.length - 1)) * 100}%` }}></div>
-                <div className={`h-1 flex-1 rounded-full ${passwordStrength >= 1 ? strengthBarColor[Math.min(strengthBarColor.length - 1, passwordStrength)] : 'bg-gray-200'}`}></div>
                 <div className={`h-1 flex-1 rounded-full ${passwordStrength >= 2 ? strengthBarColor[Math.min(strengthBarColor.length - 1, passwordStrength)] : 'bg-gray-200'}`}></div>
                 <div className={`h-1 flex-1 rounded-full ${passwordStrength >= 3 ? strengthBarColor[Math.min(strengthBarColor.length - 1, passwordStrength)] : 'bg-gray-200'}`}></div>
+                <div className={`h-1 flex-1 rounded-full ${passwordStrength >= 4 ? strengthBarColor[Math.min(strengthBarColor.length - 1, passwordStrength)] : 'bg-gray-200'}`}></div>
               </div>
-              
+
               {/* Yêu cầu mật khẩu */}
               <ul className="list-none pt-2 pl-0 space-y-1">
                 {strengthText.map((_, index) => renderStrengthIndicator(index))}
               </ul>
             </div>
-            
+
             {/* Input Xác nhận Mật khẩu */}
             <div className="space-y-1">
               <label className="text-sm font-semibold text-gray-700">
@@ -157,6 +251,8 @@ export default function RegisterPage() {
               <div className="relative">
                 <input
                   type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5 text-sm pr-10"
                 />
                 <button
@@ -174,8 +270,11 @@ export default function RegisterPage() {
             </div>
 
             {/* Nút Tạo tài khoản */}
-            <button className="w-full bg-[#1a1a1a] hover:bg-black text-white font-medium py-2.5 rounded-lg transition-colors text-sm mt-4">
-              Tạo tài khoản
+            <button
+              onClick={handleRegister}
+              disabled={loading}
+              className="w-full bg-[#1a1a1a] hover:bg-black text-white font-medium py-2.5 rounded-lg transition-colors text-sm mt-4">
+              {loading ? "Đang xử lý..." : "Tạo tài khoản"}
             </button>
           </form>
 

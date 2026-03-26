@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Cookies from "js-cookie";
-import { decodeJWT } from "@/src/lib/jwt";
 import { Plus, LayoutDashboard, FolderOpen, FileText, Settings, LogOut, Calendar, MapPin, Loader2 } from "lucide-react";
 import Link from "next/link";
 import api from "@/src/lib/axios";
 import Image from "next/image";
+import { useSelector } from "react-redux";
+import { selectIsOrganization } from "@/src/store/slices/authSlice";
 
 // Interfaces based on API response
 interface AddressInfo {
@@ -65,18 +66,27 @@ export default function OrganizerCenterPage() {
 
     useEffect(() => {
         // Kiểm tra token và isOrganization
-        const token = Cookies.get("token");
-        if (!token) {
-            router.push(`/${locale}/auth/login`);
-            return;
-        }
+        // const token = Cookies.get("token");
+        // if (!token) {
+        //     router.push(`/${locale}/auth/login`);
+        //     return;
+        // }
 
-        const payload = decodeJWT(token);
-        if (!payload || !payload.isOrganization) {
+        // const payload = decodeJWT(token);
+        // if (!payload || !payload.isOrganization) {
+        //     // Nếu không phải organizer, chuyển về trang đăng ký
+        //     router.push(`/${locale}/organizer/register`);
+        //     return;
+        // }
+
+
+        if (!useSelector(selectIsOrganization)) {
             // Nếu không phải organizer, chuyển về trang đăng ký
             router.push(`/${locale}/organizer/register`);
             return;
         }
+
+
 
         setOrganizationName("Organizer Center");
         fetchMyEvents();

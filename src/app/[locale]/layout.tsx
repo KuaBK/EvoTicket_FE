@@ -3,10 +3,12 @@ import { NextIntlClientProvider } from 'next-intl';
 import { notFound, redirect } from 'next/navigation';
 import { locales, defaultLocale, LocaleType } from '@/src/i18n/request';
 import { ThemeProvider } from '../../components/theme-provider';
+import StoreProvider from '@/src/store/StoreProvider';
 import '../globals.css';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ChatBot } from '@/src/components/chatbot';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 type Props = {
   children: ReactNode;
@@ -36,17 +38,21 @@ export default async function LocaleLayout({ children, params }: Props) {
   return (
     <html lang={locale} suppressHydrationWarning>
       <body>
-        <NextIntlClientProvider locale={locale} messages={messages}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="light"
-            enableSystem
-          >
-            {children}
-            <ToastContainer />
-            <ChatBot />
-          </ThemeProvider>
-        </NextIntlClientProvider>
+        <StoreProvider>
+          <NextIntlClientProvider locale={locale} messages={messages}>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="light"
+              enableSystem
+            >
+              <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
+                {children}
+              </GoogleOAuthProvider>
+              <ToastContainer />
+              <ChatBot />
+            </ThemeProvider>
+          </NextIntlClientProvider>
+        </StoreProvider>
       </body>
     </html>
   );
